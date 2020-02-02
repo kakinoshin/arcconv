@@ -1,0 +1,41 @@
+﻿<Window x:Class="ArcConv.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:dd="urn:gong-wpf-dragdrop"
+        xmlns:local="clr-namespace:ArcConv"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Border BorderBrush="Black" BorderThickness="1" Margin="10"
+                Grid.Column="0"
+                dd:DragDrop.IsDropTarget="True" 
+                dd:DragDrop.DropHandler="{Binding}"
+                >
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top">
+                    <Button Content=" ... " Command="{Binding Path=FileSelectCommand}" Margin="5" DockPanel.Dock="Right"/>
+                    <Label Content="Path:" DockPanel.Dock="Left"/>
+                    <TextBox Text="{Binding Path=FilePath}" Margin="3"/>
+                </DockPanel>
+                <ListView ItemsSource="{Binding Path=FileList}" SelectedItem="{Binding Path=SelectedFilePath}"/>
+            </DockPanel>
+        </Border>
+        <Border BorderBrush="Black" BorderThickness="1" Margin="10"
+                Grid.Column="1"
+                >
+            <ListView ItemsSource="{Binding Path=ImgFileList}" SelectedItem="{Binding Path=SelectedImgFilePath}"/>
+        </Border>
+        <Border BorderBrush="Black" BorderThickness="1" Margin="0"
+                Grid.Column="2"
+                >
+            <Image Source="{Binding Path=ImageData}"/>
+        </Border>
+    </Grid>
+</Window>
