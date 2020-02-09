@@ -8,34 +8,129 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        <Border BorderBrush="Black" BorderThickness="1" Margin="10"
+        <!-- main layer -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- File List -->
+            <Border BorderBrush="Black" BorderThickness="1" Margin="10"
                 Grid.Column="0"
                 dd:DragDrop.IsDropTarget="True" 
                 dd:DragDrop.DropHandler="{Binding}"
                 >
-            <DockPanel>
-                <DockPanel DockPanel.Dock="Top">
-                    <Button Content=" ... " Command="{Binding Path=FileSelectCommand}" Margin="5" DockPanel.Dock="Right"/>
-                    <Label Content="Path:" DockPanel.Dock="Left"/>
-                    <TextBox Text="{Binding Path=FilePath}" Margin="3"/>
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top">
+                        <Button Content=" ... " Command="{Binding Path=FileSelectCommand}" Margin="5" DockPanel.Dock="Right"/>
+                        <Label Content="Path:" DockPanel.Dock="Left"/>
+                        <TextBox Text="{Binding Path=FilePath}" Margin="3"/>
+                    </DockPanel>
+                    <ListView x:Name="fList" ItemsSource="{Binding Path=FileList}" SelectedItem="{Binding Path=SelectedFilePath}"/>
                 </DockPanel>
-                <ListView ItemsSource="{Binding Path=FileList}" SelectedItem="{Binding Path=SelectedFilePath}"/>
-            </DockPanel>
-        </Border>
-        <Border BorderBrush="Black" BorderThickness="1" Margin="10"
-                Grid.Column="1"
+            </Border>
+            
+            <!-- File List in Archive -->
+            <Border BorderBrush="Black" BorderThickness="1" Margin="10"
+                    Grid.Column="1"
                 >
-            <ListView ItemsSource="{Binding Path=ImgFileList}" SelectedItem="{Binding Path=SelectedImgFilePath}"/>
-        </Border>
-        <Border BorderBrush="Black" BorderThickness="1" Margin="0"
+                <Border.Style>
+                    <Style>
+                        <Setter Property="Border.IsEnabled" Value="True"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=fList, Path=SelectedItem}" Value="{x:Null}">
+                                <Setter  Property="Border.IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top">
+                        <Button Content="Save to Zip" Command="{Binding Path=ZipOutCommand}" Margin="5" DockPanel.Dock="Right"/>
+                        <Label Content="Out:" DockPanel.Dock="Left"/>
+                        <TextBox Text="{Binding Path=OutFileName}" Margin="3"/>
+                    </DockPanel>
+                    <GroupBox Margin="10" DockPanel.Dock="Top">
+                        <GroupBox.Header>
+                            <CheckBox x:Name="ResizeGroup" Content="Resize" IsChecked="{Binding Path=IsResize}"/>
+                        </GroupBox.Header>
+                        <GroupItem IsEnabled="{Binding ElementName=ResizeGroup,Path=IsChecked}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="10">
+                                    <Label Content="Width:" Width="60"/>
+                                    <TextBox Width="50" VerticalContentAlignment="Center" Text="{Binding Path=ImageWidth}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="10">
+                                    <Label Content="Height:" Width="60"/>
+                                    <TextBox Width="50" VerticalContentAlignment="Center" Text="{Binding Path=ImageHeight}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupItem>
+                    </GroupBox>
+                    <GroupBox Margin="10" DockPanel.Dock="Top">
+                        <GroupBox.Header>
+                            <CheckBox x:Name="CompressGroup" Content="Compress" IsChecked="{Binding Path=IsCompress}"/>
+                        </GroupBox.Header>
+                        <GroupItem IsEnabled="{Binding ElementName=CompressGroup,Path=IsChecked}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="10">
+                                    <Label Content="Quality:" Width="60"/>
+                                    <TextBox Width="50" VerticalContentAlignment="Center" Text="{Binding Path=JpegQuality}"/>
+                                </StackPanel>
+                                <CheckBox Content="Grayscale" IsChecked="{Binding Path=IsGrayscale}"/>
+                            </StackPanel>
+                        </GroupItem>
+                    </GroupBox>
+                    
+                    <ListView ItemsSource="{Binding Path=ImgFileList}" SelectedItem="{Binding Path=SelectedImgFilePath}" Margin="0,-2,0,2"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Preview -->
+            <Border BorderBrush="Black" BorderThickness="1" Margin="0"
                 Grid.Column="2"
                 >
-            <Image Source="{Binding Path=ImageData}"/>
-        </Border>
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Margin="10">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Label Content="Width:" Width="50"/>
+                                <TextBlock Width="50" Text="{Binding Path=SelectedImageWidth}" VerticalAlignment="Center"/>
+                                <Label Content="Height:" Width="50"/>
+                                <TextBlock Width="50" Text="{Binding Path=SelectedImageHeight}" VerticalAlignment="Center"/>
+                                <Button Content="Close" Command="{Binding Path=ImageCloseCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Image Source="{Binding Path=ImageData}"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+        <!-- progress layer -->
+        <Grid Visibility="{Binding Path=IsVisibleProgress}">
+            <Grid  Background="White" Opacity="0.7"/>
+            <Border Background="White" BorderBrush="Black" BorderThickness="2"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="500" Height="150"
+                    >
+                <StackPanel Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Output path:" VerticalContentAlignment="Center"/>
+                        <TextBlock Text="{Binding Path=ProgressOutFileName}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="File:" VerticalContentAlignment="Center"/>
+                        <TextBlock Text="{Binding Path=ProgressFileName}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ProgressBar Margin="10" Height="15"
+                                 Value="{Binding Path=ProgressValue}" Maximum="{Binding Path=ProgressMax}"/>
+                    <Button HorizontalAlignment="Center" Width="100" Margin="0,5"
+                            Content="Close" IsEnabled="{Binding Path=IsEnableProgressClose}"
+                            Command="{Binding Path=ProgressCloseCommand}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
