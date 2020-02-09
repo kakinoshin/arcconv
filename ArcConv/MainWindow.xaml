@@ -17,20 +17,39 @@
             </Grid.ColumnDefinitions>
             
             <!-- File List -->
-            <Border BorderBrush="Black" BorderThickness="1" Margin="10"
-                Grid.Column="0"
-                dd:DragDrop.IsDropTarget="True" 
-                dd:DragDrop.DropHandler="{Binding}"
-                >
-                <DockPanel>
-                    <DockPanel DockPanel.Dock="Top">
-                        <Button Content=" ... " Command="{Binding Path=FileSelectCommand}" Margin="5" DockPanel.Dock="Right"/>
-                        <Label Content="Path:" DockPanel.Dock="Left"/>
-                        <TextBox Text="{Binding Path=FilePath}" Margin="3"/>
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <Border BorderBrush="Black" BorderThickness="1" Margin="10"
+                        Grid.Row="0"
+                        dd:DragDrop.IsDropTarget="True" 
+                        dd:DragDrop.DropHandler="{Binding}"
+                        >
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top">
+                            <Button Content=" ... " Command="{Binding Path=FileSelectCommand}" Margin="5" DockPanel.Dock="Right"/>
+                            <Label Content="Path:" DockPanel.Dock="Left"/>
+                            <TextBox Text="{Binding Path=FilePath}" Margin="3"/>
+                        </DockPanel>
+                        <ListView x:Name="fList" ItemsSource="{Binding Path=FileList}" SelectedItem="{Binding Path=SelectedFilePath}"/>
                     </DockPanel>
-                    <ListView x:Name="fList" ItemsSource="{Binding Path=FileList}" SelectedItem="{Binding Path=SelectedFilePath}"/>
-                </DockPanel>
-            </Border>
+                </Border>
+                <Border BorderBrush="Black" BorderThickness="1" Margin="10" Grid.Row="1">
+                    <Border.Style>
+                        <Style>
+                            <Setter Property="Border.IsEnabled" Value="True"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=fList, Path=SelectedItem}" Value="{x:Null}">
+                                    <Setter  Property="Border.IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <ListView ItemsSource="{Binding Path=FolderList}" SelectedItem="{Binding Path=SelectedFolderPath}"/>
+                </Border>
+            </Grid>
             
             <!-- File List in Archive -->
             <Border BorderBrush="Black" BorderThickness="1" Margin="10"
@@ -84,7 +103,9 @@
                         </GroupItem>
                     </GroupBox>
                     
-                    <ListView ItemsSource="{Binding Path=ImgFileList}" SelectedItem="{Binding Path=SelectedImgFilePath}" Margin="0,-2,0,2"/>
+                    <ListView ItemsSource="{Binding Path=ImgFileList}" SelectedItem="{Binding Path=SelectedImgFilePath}"
+                              Margin="0,-2,0,2"
+                              DisplayMemberPath="Key"/>
                 </DockPanel>
             </Border>
 

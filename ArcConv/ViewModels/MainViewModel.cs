@@ -20,15 +20,16 @@ using SixLabors.ImageSharp.Processing;
 using ResizeMode = SixLabors.ImageSharp.Processing.ResizeMode;
 using Size = SixLabors.Primitives.Size;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 #endif
 
 namespace ArcConv.ViewModels
 {
     public class MainViewModel : ViewModelBase, IDropTarget
     {
+        // File List
+
         public ObservableCollection<string> FileList { get; } = new ObservableCollection<string>();
-        public ObservableCollection<IArchiveEntry> ImgFileList { get; } = new ObservableCollection<IArchiveEntry>();
-        public string FilePath { set; get; }
 
         #region implementation of SelectedFilePath property with Notification
         private string _SelectedFilePath = null;
@@ -49,7 +50,67 @@ namespace ArcConv.ViewModels
                 return _SelectedFilePath;
             }
         }
-#endregion
+        #endregion
+
+        #region [Command: FileSelectCommand]
+
+        private ICommand _FileSelectCommand = null;
+        public ICommand FileSelectCommand
+        {
+            get
+            {
+                if (_FileSelectCommand == null)
+                {
+                    _FileSelectCommand = new DelegateCommand
+                    {
+                        ExecuteHandler = FileSelectCommandExecute,
+                        CanExecuteHandler = FileSelectCommandCanExecute,
+                    };
+                }
+
+                return _FileSelectCommand;
+            }
+        }
+
+        private void FileSelectCommandExecute(object parameter)
+        {
+            System.Console.WriteLine("Push: ...");
+        }
+
+        private bool FileSelectCommandCanExecute(object parameter)
+        {
+            return true;
+        }
+
+        #endregion
+
+
+        // Folder List
+
+        public ObservableCollection<string> FolderList { get; } = new ObservableCollection<string>();
+
+        #region implementation of SelectedFolderPath property with Notification
+        private string _SelectedFolderPath = null;
+        public string SelectedFolderPath
+        {
+            set
+            {
+                if (_SelectedFolderPath != value)
+                {
+                    _SelectedFolderPath = value;
+                    NotifyPropertyChanged("SelectedFolderPath");
+                }
+            }
+            get
+            {
+                return _SelectedFolderPath;
+            }
+        }
+        #endregion
+
+        // Image List
+
+        public ObservableCollection<IArchiveEntry> ImgFileList { get; } = new ObservableCollection<IArchiveEntry>();
 
         #region implementation of SelectedImgFilePath property with Notification
         private IArchiveEntry _SelectedImgFilePath = null;
@@ -68,25 +129,6 @@ namespace ArcConv.ViewModels
             get
             {
                 return _SelectedImgFilePath;
-            }
-        }
-#endregion
-
-        #region implementation of ImageData property with Notification
-        private BitmapImage _ImageData = new BitmapImage();
-        public BitmapImage ImageData
-        {
-            set
-            {
-                if (_ImageData != value)
-                {
-                    _ImageData = value;
-                    NotifyPropertyChanged("ImageData");
-                }
-            }
-            get
-            {
-                return _ImageData;
             }
         }
         #endregion
@@ -108,6 +150,45 @@ namespace ArcConv.ViewModels
                 return _OutFileName;
             }
         }
+        #endregion
+
+        #region [Command: ZipOutCommand]
+
+        private ICommand _ZipOutCommand = null;
+        public ICommand ZipOutCommand
+        {
+            get
+            {
+                if (_ZipOutCommand == null)
+                {
+                    _ZipOutCommand = new DelegateCommand
+                    {
+                        ExecuteHandler = ZipOutCommandExecute,
+                        CanExecuteHandler = ZipOutCommandCanExecute,
+                    };
+                }
+
+                return _ZipOutCommand;
+            }
+        }
+
+        private void ZipOutCommandExecute(object parameter)
+        {
+            if (!string.IsNullOrEmpty(OutFileName))
+            {
+                convertToZip(OutFileName);
+            }
+            else
+            {
+                MessageBox.Show("Set output file name", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private bool ZipOutCommandCanExecute(object parameter)
+        {
+            return true;
+        }
+
         #endregion
 
         // Resize
@@ -300,77 +381,23 @@ namespace ArcConv.ViewModels
 
         #endregion
 
-        //
-
-        #region [Command: FileSelectCommand]
-
-        private ICommand _FileSelectCommand = null;
-        public ICommand FileSelectCommand
+        #region implementation of ImageData property with Notification
+        private BitmapImage _ImageData = new BitmapImage();
+        public BitmapImage ImageData
         {
+            set
+            {
+                if (_ImageData != value)
+                {
+                    _ImageData = value;
+                    NotifyPropertyChanged("ImageData");
+                }
+            }
             get
             {
-                if (_FileSelectCommand == null)
-                {
-                    _FileSelectCommand = new DelegateCommand
-                    {
-                        ExecuteHandler = FileSelectCommandExecute,
-                        CanExecuteHandler = FileSelectCommandCanExecute,
-                    };
-                }
-
-                return _FileSelectCommand;
+                return _ImageData;
             }
         }
-
-        private void FileSelectCommandExecute(object parameter)
-        {
-            System.Console.WriteLine("Push: ...");
-        }
-
-        private bool FileSelectCommandCanExecute(object parameter)
-        {
-            return true;
-        }
-
-        #endregion
-
-        #region [Command: ZipOutCommand]
-
-        private ICommand _ZipOutCommand = null;
-        public ICommand ZipOutCommand
-        {
-            get
-            {
-                if (_ZipOutCommand == null)
-                {
-                    _ZipOutCommand = new DelegateCommand
-                    {
-                        ExecuteHandler = ZipOutCommandExecute,
-                        CanExecuteHandler = ZipOutCommandCanExecute,
-                    };
-                }
-
-                return _ZipOutCommand;
-            }
-        }
-
-        private void ZipOutCommandExecute(object parameter)
-        {
-            if(!string.IsNullOrEmpty(OutFileName))
-            {
-                convertToZip(OutFileName);
-            }
-            else
-            {
-                MessageBox.Show("Set output file name", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private bool ZipOutCommandCanExecute(object parameter)
-        {
-            return true;
-        }
-
         #endregion
 
         // Progress
@@ -545,10 +572,8 @@ namespace ArcConv.ViewModels
 
         private void updateImgFileList()
         {
-            if(!string.IsNullOrEmpty(SelectedFilePath))
+            if (!string.IsNullOrEmpty(SelectedFilePath))
             {
-                ImgFileList.Clear();
-
                 IArchive archive = ArchiveFactory.Open(SelectedFilePath);
                 var entries = archive.Entries.Where(e =>
                     e.IsDirectory == false && (
@@ -557,6 +582,40 @@ namespace ArcConv.ViewModels
                     Path.GetExtension(e.Key).Equals(".png") ||
                     Path.GetExtension(e.Key).Equals(".bmp")));
 
+
+                // Folder List
+                FolderList.Clear();
+                var analysis = new Dictionary<int, int>();
+                foreach (var item in entries.ToList())
+                {
+                    var parts = item.Key.Split('\\').ToList<string>();
+                    if (analysis.Keys.Contains<int>(parts.Count))
+                    {
+                        analysis[parts.Count]++;
+                    }
+                    else
+                    {
+                        analysis.Add(parts.Count, 1);
+                    }
+                }
+                int folderIdx = analysis.OrderByDescending(val => val.Value).First().Key - 2;
+                if (folderIdx >= 0)
+                {
+                    foreach (var item in entries.ToList())
+                    {
+                        var parts = item.Key.Split('\\').ToList<string>();
+                        if (parts.Count > folderIdx)
+                        {
+                            if (!FolderList.Contains(parts[folderIdx]))
+                            {
+                                FolderList.Add(parts[folderIdx]);
+                            }
+                        }
+                    }
+                }
+
+                // Image File List
+                ImgFileList.Clear();
                 foreach(var item in entries.ToList())
                 {
                     ImgFileList.Add(item);
