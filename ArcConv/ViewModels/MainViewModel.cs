@@ -84,7 +84,6 @@ namespace ArcConv.ViewModels
 
         #endregion
 
-
         // Folder List
 
         public ObservableCollection<string> FolderList { get; } = new ObservableCollection<string>();
@@ -598,7 +597,8 @@ namespace ArcConv.ViewModels
                         analysis.Add(parts.Count, 1);
                     }
                 }
-                int folderIdx = analysis.OrderByDescending(val => val.Value).First().Key - 2;
+                //int folderIdx = analysis.OrderByDescending(val => val.Value).First().Key - 2;
+                int folderIdx = analysis.Aggregate((x, y) => x.Value > y.Value ? x : y).Key - 2;    // last idx for file name. And 0 start.
                 if (folderIdx >= 0)
                 {
                     foreach (var item in entries.ToList())
