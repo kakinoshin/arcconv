@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:dd="urn:gong-wpf-dragdrop"
         xmlns:local="clr-namespace:ArcConv"
+        xmlns:vm="clr-namespace:ArcConv.ViewModels"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
@@ -98,7 +99,12 @@
                                     <Label Content="Quality:" Width="60"/>
                                     <TextBox Width="50" VerticalContentAlignment="Center" Text="{Binding Path=JpegQuality}"/>
                                 </StackPanel>
-                                <CheckBox Content="Grayscale" IsChecked="{Binding Path=IsGrayscale}"/>
+                                <CheckBox Margin="10" Content="Grayscale" IsChecked="{Binding Path=IsGrayscale}"/>
+                                <ComboBox Margin="10"
+                                          ItemsSource="{Binding Source, Source={vm:ImgFmtSourceProvider}}"
+                                          DisplayMemberPath="Name" 
+                                          SelectedValuePath="Code"
+                                          SelectedValue="{Binding Path=ImageFormat}"/>
                             </StackPanel>
                         </GroupItem>
                     </GroupBox>

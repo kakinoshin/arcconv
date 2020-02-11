@@ -5,12 +5,16 @@ using SharpCompress.Archives;
 using SharpCompress.Common;
 using SharpCompress.Writers;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+
 #if IMAGE_RESIZER
 using ImageResizer;
 #endif
@@ -19,12 +23,29 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using ResizeMode = SixLabors.ImageSharp.Processing.ResizeMode;
 using Size = SixLabors.Primitives.Size;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 #endif
 
 namespace ArcConv.ViewModels
 {
+    public enum ImgFmt
+    {
+        [Description("4:4:4")]
+        IMG_444,
+        [Description("4:4:2")]
+        IMG_442,
+        [Description("4:4:0")]
+        IMG_440,
+        [Description("4:2:2")]
+        IMG_422,
+        [Description("4:2:1")]
+        IMG_421,
+        [Description("4:2:0")]
+        IMG_420,
+    }
+
+    public class ImgFmtSourceProvider : EnumSourceProvider<ImgFmt> { }
+
+
     public class MainViewModel : ViewModelBase, IDropTarget
     {
         // File List
@@ -307,6 +328,27 @@ namespace ArcConv.ViewModels
             }
         }
         #endregion
+
+        #region implementation of ImageFormat property with Notification
+        private ImgFmt _ImageFormat = ImgFmt.IMG_420;
+        public ImgFmt ImageFormat
+        {
+            set
+            {
+                if (_ImageFormat != value)
+                {
+                    _ImageFormat = value;
+                    NotifyPropertyChanged("ImageFormat");
+                }
+            }
+            get
+            {
+                return _ImageFormat;
+            }
+        }
+        #endregion
+
+        //
 
         // Preview
 
@@ -597,18 +639,21 @@ namespace ArcConv.ViewModels
                         analysis.Add(parts.Count, 1);
                     }
                 }
-                //int folderIdx = analysis.OrderByDescending(val => val.Value).First().Key - 2;
-                int folderIdx = analysis.Aggregate((x, y) => x.Value > y.Value ? x : y).Key - 2;    // last idx for file name. And 0 start.
-                if (folderIdx >= 0)
+                if (analysis.Count > 0)
                 {
-                    foreach (var item in entries.ToList())
+                    //int folderIdx = analysis.OrderByDescending(val => val.Value).First().Key - 2;
+                    int folderIdx = analysis.Aggregate((x, y) => x.Value > y.Value ? x : y).Key - 2;    // last idx for file name. And 0 start.
+                    if (folderIdx >= 0)
                     {
-                        var parts = item.Key.Split('\\').ToList<string>();
-                        if (parts.Count > folderIdx)
+                        foreach (var item in entries.ToList())
                         {
-                            if (!FolderList.Contains(parts[folderIdx]))
+                            var parts = item.Key.Split('\\').ToList<string>();
+                            if (parts.Count > folderIdx)
                             {
-                                FolderList.Add(parts[folderIdx]);
+                                if (!FolderList.Contains(parts[folderIdx]))
+                                {
+                                    FolderList.Add(parts[folderIdx]);
+                                }
                             }
                         }
                     }
@@ -666,18 +711,30 @@ namespace ArcConv.ViewModels
                     {
                         ProgressFileName = item.Key;
                         var outStream = new MemoryStream();
+
 #if IMAGE_RESIZER
-                    var instructions = new Instructions()
-                    {
-                        Width = 300,
-                        Mode = FitMode.Max,
-                        Format = "jpg"
-                    };
-                    ImageBuilder.Current.Build(new ImageJob(item.OpenEntryStream(), outStream, instructions, false, true));
-                    //item.OpenEntryStream().CopyTo(inStream);
-                    //ImageJob imageJob = new ImageJob(inStream, outStream, instructions);
-                    //inStream.Seek(0, SeekOrigin.Begin);
-                    //ImageBuilder.Current.Build(new ImageJob(item.OpenEntryStream(), outStream, new Instructions("height=300"), false, true));
+                        var instructions = new Instructions();
+                        instructions.Format = "jpg";
+
+                        if (IsResize)
+                        {
+                            instructions.Width = ImageWidth;
+                            instructions.Height = ImageHeight;
+                            instructions.Mode = FitMode.Max;
+                        }
+
+                        if (IsCompress)
+                        {
+                            if (IsGrayscale)
+                            {
+                                instructions.Grayscale = GrayscaleMode.Flat;    // TODO: check mode
+                            }
+
+                            instructions.JpegSubsampling = JpegSubsamplingMode.Y4Cb2Cr0;
+                            instructions.JpegQuality = JpegQuality;
+                        }
+
+                        ImageBuilder.Current.Build(new ImageJob(item.OpenEntryStream(), outStream, instructions, false, true));
 #endif
 #if IMAGE_SHARP
                         using (Image image = Image.Load(item.OpenEntryStream()))
@@ -702,7 +759,18 @@ namespace ArcConv.ViewModels
                                          );
                                 }
 
-                                image.SaveAsJpeg(outStream, new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder() { Quality = JpegQuality, Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio420 });
+                                var enc = new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder();
+                                enc.Quality = JpegQuality;
+                                enc.Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio444;
+                                if(ImageFormat == ImgFmt.IMG_444)
+                                {
+                                    enc.Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio444;
+                                }
+                                else if(ImageFormat == ImgFmt.IMG_420)
+                                {
+                                    enc.Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio420;
+                                }
+                                image.SaveAsJpeg(outStream, enc);
                             }
                             else
                             {
@@ -735,11 +803,23 @@ namespace ArcConv.ViewModels
             {
                 try
                 {
+#if IMAGE_SHARP
                     using (Image i = Image.Load(SelectedImgFilePath.OpenEntryStream()))
                     {
                         SelectedImageWidth = i.Width;
                         SelectedImageHeight = i.Height;
                     }
+#endif
+#if IMAGE_RESIZER
+                    //var outStream = new MemoryStream();
+                    //var size = new System.Drawing.Size();
+                    //var instructions = new Instructions();
+                    //instructions.Format = "jpg";
+                    //ImageBuilder.Current.Build(new ImageJob(SelectedImgFilePath.OpenEntryStream(), outStream, instructions));
+                    //ImageBuilder.Current.GetFinalSize(size, new Instructions());
+                    //SelectedImageWidth = size.Width;
+                    //SelectedImageHeight = size.Height;
+#endif
                     var img = new BitmapImage();
                     img.BeginInit();
                     img.StreamSource = SelectedImgFilePath.OpenEntryStream();
