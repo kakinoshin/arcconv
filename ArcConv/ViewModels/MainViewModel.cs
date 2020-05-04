@@ -22,7 +22,7 @@ using ImageResizer;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using ResizeMode = SixLabors.ImageSharp.Processing.ResizeMode;
-using Size = SixLabors.Primitives.Size;
+using Size = SixLabors.ImageSharp.Size;
 #endif
 
 namespace ArcConv.ViewModels
