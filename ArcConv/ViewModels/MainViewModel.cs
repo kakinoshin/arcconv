@@ -691,8 +691,13 @@ namespace ArcConv.ViewModels
                 IsVisibleProgress = Visibility.Visible;
                 IsEnableProgressClose = false;
 
+                var opts = new SharpCompress.Writers.WriterOptions(CompressionType.Deflate);
+                opts.ArchiveEncoding = new SharpCompress.Common.ArchiveEncoding();
+                //opts.ArchiveEncoding.Default = System.Text.Encoding.GetEncoding("shift_jis");
+                opts.ArchiveEncoding.Default = System.Text.Encoding.UTF8;
+
                 using (var zip = File.OpenWrite(filename))
-                using (var zipWriter = WriterFactory.Open(zip, ArchiveType.Zip, CompressionType.Deflate))
+                using (var zipWriter = WriterFactory.Open(zip, ArchiveType.Zip, opts))
                 {
                     ProgressOutFileName = SelectedFilePath;
 
@@ -759,18 +764,37 @@ namespace ArcConv.ViewModels
                                          );
                                 }
 
-                                var enc = new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder();
-                                enc.Quality = JpegQuality;
-                                enc.Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio444;
-                                if(ImageFormat == ImgFmt.IMG_444)
+                                // Use ImageSharp
+                                if (false)
                                 {
+                                    var enc = new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder();
+                                    enc.Quality = JpegQuality;
                                     enc.Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio444;
+                                    if (ImageFormat == ImgFmt.IMG_444)
+                                    {
+                                        enc.Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio444;
+                                    }
+                                    else if (ImageFormat == ImgFmt.IMG_420)
+                                    {
+                                        enc.Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio420;
+                                    }
+                                    image.SaveAsJpeg(outStream, enc);
                                 }
-                                else if(ImageFormat == ImgFmt.IMG_420)
+
+                                // Use MozJpeg
+                                if (true)
                                 {
-                                    enc.Subsample = SixLabors.ImageSharp.Formats.Jpeg.JpegSubsample.Ratio420;
+                                    var bmpenc = new SixLabors.ImageSharp.Formats.Bmp.BmpEncoder();
+                                    image.Save(outStream, bmpenc);
+                                    outStream.Seek(0, SeekOrigin.Begin);
+
+                                    var tjc = new MozJpegSharp.TJCompressor();
+                                    var b = new System.Drawing.Bitmap(outStream);
+                                    //var compressed = tjc.Compress(b, MozJpegSharp.TJSubsamplingOption.Chrominance420, 75, MozJpegSharp.TJFlags.None);
+                                    var compressed = tjc.Compress(b, MozJpegSharp.TJSubsamplingOption.Chrominance420, 30, MozJpegSharp.TJFlags.None);
+                                    outStream = new MemoryStream(compressed);
                                 }
-                                image.SaveAsJpeg(outStream, enc);
+
                             }
                             else
                             {
